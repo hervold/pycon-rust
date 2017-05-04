@@ -1,0 +1,6 @@
+[package]
+name = "simple_mc"
+version = "0.1.0"
+authors = ["Kieran Hervold <khervold@twistbioscience.com>"]
+
+[dependencies]
