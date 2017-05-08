@@ -1,0 +1,14 @@
+[package]
+name = "twist-pycon-rust"
+version = "1.0.0"
+authors = ["kieran hervold <khervold@twistbioscience.com>"]
+
+[lib]
+name = "twist_pycon_slides"
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "twist-ex1"
+path = "src/bin/twist-ex1.rs"
+
+
