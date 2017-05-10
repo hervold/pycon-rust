@@ -13,6 +13,7 @@ def weighted_choice( cts ):
             acc.append(word)
     return random.choice(acc)
 
+trimcomma = lambda s: s.rstrip(',')
 
 def read_corpus(fh):
     counts = defaultdict(lambda: defaultdict(int))
@@ -29,7 +30,9 @@ def read_corpus(fh):
     return counts
 
 def generate_sentence(counts):
+    # choose a random word as the first in the sentence
     first = random.choice( counts.keys() )
+    # [acc]umulator to hold the sentence
     acc = [first]
 
     next = weighted_choice( counts[first] )
@@ -50,7 +53,6 @@ def generate_sentence(counts):
     return ' '.join(acc) + '.'
 
 
-trimcomma = lambda s: s.rstrip(',')
 
 
 if __name__ == "__main__":
