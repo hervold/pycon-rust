@@ -3,5 +3,9 @@ name = "simple_mc"
 version = "0.1.0"
 authors = ["Kieran Hervold <khervold@twistbioscience.com>"]
 
+[lib]
+name = "simple_mc"
+crate-type = ["cdylib","rlib"]
+
 [dependencies]
 rand = "*"
