@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use rand::{Rng, SeedableRng, StdRng};
 use std::io::{BufRead, BufReader};
 use std::fs::File;
+use std::mem;
 
 // for C/Python compatibility
 use std::ffi::{CStr, CString};
@@ -32,6 +33,12 @@ pub type WordFreq = HashMap<SentAtom, WordTally>;
 pub struct LibState<R: Rng + Sized>{
     rng: R,
     counts: WordFreq
+}
+
+impl<R: Rng + Sized> Drop for LibState<R> {
+    fn drop(&mut self) {
+        println!("Dropping libstate");
+    }
 }
 
 
@@ -98,7 +105,7 @@ pub fn read_corpus( reader: &mut BufRead ) -> WordFreq {
             }
             // tally the end-of-sentence
             let mut word_entry = counts
-                .entry(SentAtom::Word(words[words.len()-1].to_string()))
+                .entry(SentAtom::Word(trimcomma(words[words.len()-1]).to_string()))
                 .or_insert_with(HashMap::new);
             let mut assoc_e = word_entry
                 .entry(SentAtom::SentBreak)
@@ -116,7 +123,6 @@ pub fn generate_sentence<'a, R>( mut rnd: &'a mut R, corpus: &WordFreq ) -> Stri
     let keys = corpus.keys().collect::<Vec<&SentAtom>>();
 
     let first = rnd.choose(&keys).unwrap();
-    
     let mut accum: Vec<String> = vec![ match first {
         &&SentAtom::Word(ref w) => w.to_string(),
         _ => panic!()
@@ -130,15 +136,20 @@ pub fn generate_sentence<'a, R>( mut rnd: &'a mut R, corpus: &WordFreq ) -> Stri
         let word = match next {
             &SentAtom::Comma => {
 
-                // add comma to most recent word
+                // add comma to most recent word.  note that it might already have
+                //  a comma, so we need to trim it
                 let last = accum.pop().unwrap();
-                let mut last_plus_comma = last.clone();
+                let trimmed = String::from(trimcomma(&last[..]));
+
+                let mut last_plus_comma = trimmed.clone();
                 last_plus_comma.push(',');
 
+                let key = SentAtom::Word(trimmed);
+
                 // now grab an alternative next word
-                seed = weighted_choice(&mut rnd, corpus.get(&SentAtom::Word(last.clone())).unwrap());
+                seed = weighted_choice(&mut rnd, corpus.get(&key).unwrap());
                 while seed.is_not_word() {
-                    seed = weighted_choice(&mut rnd, corpus.get(&SentAtom::Word(last.clone())).unwrap())
+                    seed = weighted_choice(&mut rnd, corpus.get(&key).unwrap());
                 }
                 last_plus_comma
             },
@@ -148,6 +159,7 @@ pub fn generate_sentence<'a, R>( mut rnd: &'a mut R, corpus: &WordFreq ) -> Stri
         accum.push( word );
         next = weighted_choice(&mut rnd, corpus.get(seed).unwrap());
     }
+
     accum.join(" ")
 }
 
@@ -167,17 +179,17 @@ pub extern fn read_corpus_file( _fname: *const c_char ) -> *const c_void {
 }
 
 #[no_mangle]
-pub extern fn ext_generate_sentence( _state: *const c_void ) -> *const c_char {
+pub extern fn ext_generate_sentence( _state: *const c_void ) -> *mut c_char {
 
-    let mut state = unsafe {
-        Box::from_raw(_state as *mut LibState<StdRng>)
+    let mut state: &mut LibState<StdRng> = unsafe {
+        mem::transmute(_state)
     };
-    // ugly - https://github.com/rust-lang/rust/issues/30564
-    let tmp = *state;
-    let (mut rng, counts) = match tmp {
-        LibState { rng, counts } => (rng, counts)
+
+    let (mut rng, counts) = match state {
+        &mut LibState { ref mut rng, ref counts } => (rng, counts)
     };
-    CString::new( generate_sentence(&mut rng, &counts) ).unwrap().into_raw()
+        
+    CString::new( generate_sentence(rng, counts) ).unwrap().into_raw()
 }
 
 #[no_mangle]

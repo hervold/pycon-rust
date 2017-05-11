@@ -19,12 +19,17 @@ lib.release_str.argtypes = [ctypes.c_void_p]
 
 class MarkovGenerator:
     pointer = None
+    last_sent = None
     def __init__(self, fname):
         self.pointer = lib.read_corpus_file( fname )
     def sentence(self):
-        p = lib.ext_generate_sentence( self.pointer )
-        return ctypes.cast(p, ctypes.c_char_p).value
+        if self.last_sent is not None:
+            lib.release_str(self.last_sent)
+        self.last_sent = lib.ext_generate_sentence( self.pointer )
+        return ctypes.cast(self.last_sent, ctypes.c_char_p).value
 
 
 g = MarkovGenerator("/Users/khervold/Documents/code/Twist-PyCon-2017/Rust/corpus")
-print g.sentence()
+
+for _ in range(1000):
+    _ = g.sentence()
