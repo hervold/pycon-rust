@@ -160,7 +160,9 @@ pub fn generate_sentence<'a, R>( mut rnd: &'a mut R, corpus: &WordFreq ) -> Stri
         next = weighted_choice(&mut rnd, corpus.get(seed).unwrap());
     }
 
-    accum.join(" ")
+    let mut sentence = accum.join(" ");
+    sentence.push('.');
+    sentence
 }
 
 #[no_mangle]
