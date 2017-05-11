@@ -1,5 +1,5 @@
 import ctypes
-import json
+import argparse
 
 lib = ctypes.CDLL("target/release/libsimple_mc.dylib")
 
@@ -29,7 +29,12 @@ class MarkovGenerator:
         return ctypes.cast(self.last_sent, ctypes.c_char_p).value
 
 
-g = MarkovGenerator("/Users/khervold/Documents/code/Twist-PyCon-2017/Rust/corpus")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('sentence_count', type=int)
+    parser.add_argument('fname')
+    args = parser.parse_args()
 
-for _ in range(1000):
-    _ = g.sentence()
+    g = MarkovGenerator(args.fname)
+    for _ in xrange(args.sentence_count):
+        print g.sentence()
